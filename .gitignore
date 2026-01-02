@@ -1,0 +1,12 @@
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+coverage/
+.DS_Store
+.env
+*.log
+.tmp/
+postgres_data/
+redis_data/
+grafana_data/
