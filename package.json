@@ -1,0 +1,31 @@
+{
+  "name": "workflow-orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "control-plane",
+    "worker",
+    "ui",
+    "bench"
+  ],
+  "scripts": {
+    "setup": "npm install",
+    "setup:hooks": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-git-hooks.ps1",
+    "build": "npm run -ws --if-present build",
+    "test": "npm run -ws --if-present test",
+    "test-integration": "npm run -w control-plane test:integration && npm run -w worker test:integration",
+    "lint": "npm run -ws --if-present lint",
+    "typecheck": "npm run -ws --if-present typecheck",
+    "dev:control-plane": "npm run -w control-plane dev",
+    "dev:worker": "npm run -w worker dev",
+    "dev:ui": "npm run -w ui dev",
+    "bench": "npm run -w bench start"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}

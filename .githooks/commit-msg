@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+set -eu
+
+msg_file="$1"
+subject="$(sed -n '1p' "$msg_file")"
+
+conventional='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: .+'
+
+if ! printf '%s' "$subject" | grep -Eq "$conventional"; then
+  echo "Invalid commit subject. Use conventional commits (e.g. feat(api): add trigger endpoint)." >&2
+  exit 1
+fi
+
+if ! grep -Eqi '^why:' "$msg_file"; then
+  echo "Commit body must include a 'why:' section." >&2
+  exit 1
+fi
+
+if ! grep -Eqi '^what:' "$msg_file"; then
+  echo "Commit body must include a 'what:' section." >&2
+  exit 1
+fi
+
+if ! grep -Eqi '^verification:' "$msg_file"; then
+  echo "Commit body must include a 'verification:' section." >&2
+  exit 1
+fi
+
+if grep -Eqi '^co-authored-by:' "$msg_file"; then
+  echo "Co-authored-by trailers are not allowed for this repository." >&2
+  exit 1
+fi

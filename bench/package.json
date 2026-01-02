@@ -1,0 +1,12 @@
+{
+  "name": "@orchestrator/bench",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/runBenchmark.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck",
+    "test": "echo \"no tests\""
+  }
+}
