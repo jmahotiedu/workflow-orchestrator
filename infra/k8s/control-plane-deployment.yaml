@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-control-plane
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workflow-control-plane
+  template:
+    metadata:
+      labels:
+        app: workflow-control-plane
+    spec:
+      containers:
+        - name: control-plane
+          image: ghcr.io/example/workflow-orchestrator-control-plane:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: API_PORT
+              value: "8080"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: workflow-secrets
+                  key: database_url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: workflow-secrets
+                  key: redis_url
+            - name: AUTH_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: workflow-secrets
+                  key: auth_tokens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-control-plane
+spec:
+  selector:
+    app: workflow-control-plane
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
