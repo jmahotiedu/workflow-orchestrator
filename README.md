@@ -2,6 +2,12 @@
 
 Distributed workflow orchestration platform built as a portfolio project to show end-to-end execution control: DAG validation, durable run/task state, Redis Streams dispatch, worker leases, retries/dead-letter, scheduler triggers, RBAC/rate limits, live dashboard, and production-style observability.
 
+## Live Cloud Deployment
+
+- Live URL: `http://workflow-orc-demo-alb-1577468805.us-east-1.elb.amazonaws.com`
+- Health: `http://workflow-orc-demo-alb-1577468805.us-east-1.elb.amazonaws.com/api/health`
+- Infra: ECS Fargate (API/worker/UI), ALB, RDS Postgres, ElastiCache Redis, ECR, Terraform
+
 ## 90-Second Reviewer TL;DR
 
 ```bash
