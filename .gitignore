@@ -10,3 +10,7 @@ coverage/
 postgres_data/
 redis_data/
 grafana_data/
+terraform/.terraform/
+terraform/*.tfstate*
+terraform/*.tfplan
+terraform/.terraform.lock.hcl

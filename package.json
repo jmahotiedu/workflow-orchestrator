@@ -20,7 +20,10 @@
     "dev:control-plane": "npm run -w control-plane dev",
     "dev:worker": "npm run -w worker dev",
     "dev:ui": "npm run -w ui dev",
-    "bench": "npm run -w bench start"
+    "bench": "npm run -w bench start",
+    "dev-up": "docker compose up -d",
+    "dev-up:full": "docker compose --profile app up -d",
+    "dev-down": "docker compose down -v"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",

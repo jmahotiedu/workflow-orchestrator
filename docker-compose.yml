@@ -1,4 +1,39 @@
 services:
+  control-plane:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile.control-plane
+    environment:
+      API_PORT: 8080
+      METRICS_PORT: 8080
+      DATABASE_URL: ${DATABASE_URL:-postgres://orchestrator:orchestrator@postgres:5432/orchestrator}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      AUTH_TOKENS: ${AUTH_TOKENS:-admin-token:admin,operator-token:operator,viewer-token:viewer}
+    ports:
+      - "8080:8080"
+
+  worker:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://orchestrator:orchestrator@postgres:5432/orchestrator}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      WORKER_METRICS_PORT: 8081
+      WORKER_MAX_BATCH: 4
+
+  ui:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    ports:
+      - "5173:80"
+
   postgres:
     image: postgres:16-alpine
     environment:

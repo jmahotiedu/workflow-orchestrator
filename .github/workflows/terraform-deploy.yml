@@ -1,0 +1,89 @@
+name: Terraform Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Terraform environment"
+        required: true
+        default: "demo"
+      apply:
+        description: "Apply after plan (true/false)"
+        required: true
+        default: "false"
+      image_tag:
+        description: "Container image tag to deploy"
+        required: true
+        default: "latest"
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      AWS_REGION: us-east-1
+      TF_ENVIRONMENT: ${{ inputs.environment }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      DB_PASSWORD: ${{ secrets.ORCHESTRATOR_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform plan
+        run: |
+          chmod +x scripts/deploy.sh
+          APPLY=false ./scripts/deploy.sh
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-orchestrator-tfplan-${{ inputs.environment }}
+          path: terraform/tfplan
+          if-no-files-found: error
+
+  terraform-apply:
+    if: ${{ inputs.apply == 'true' }}
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      AWS_REGION: us-east-1
+      TF_ENVIRONMENT: ${{ inputs.environment }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      DB_PASSWORD: ${{ secrets.ORCHESTRATOR_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform apply
+        run: |
+          chmod +x scripts/deploy.sh
+          APPLY=true ./scripts/deploy.sh

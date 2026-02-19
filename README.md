@@ -2,6 +2,15 @@
 
 Distributed workflow orchestration platform built as a portfolio project to show end-to-end execution control: DAG validation, durable run/task state, Redis Streams dispatch, worker leases, retries/dead-letter, scheduler triggers, RBAC/rate limits, live dashboard, and production-style observability.
 
+## 90-Second Reviewer TL;DR
+
+```bash
+npm install
+npm run lint
+npm run test
+npm run bench
+```
+
 ## Problem
 
 Teams often glue together cron jobs, ad hoc queues, and scripts without a single control plane for execution safety. This project focuses on the operational gap:
@@ -111,16 +120,22 @@ Copy-Item .env.example .env
 ### 4) Start infra dependencies
 
 ```bash
-docker compose up -d
+npm run dev-up
 ```
 
-### 5) Apply migrations
+### 5) (Optional) run app containers with AWS-parity images
+
+```bash
+npm run dev-up:full
+```
+
+### 6) Apply migrations
 
 ```bash
 npm run -w control-plane migrate
 ```
 
-### 6) Run services (separate terminals)
+### 7) Run services (separate terminals)
 
 ```bash
 npm run -w control-plane dev
@@ -128,7 +143,7 @@ npm run -w worker dev
 npm run -w ui dev
 ```
 
-### 7) Open the dashboard
+### 8) Open the dashboard
 
 - UI: `http://localhost:5173`
 - API health: `http://localhost:8080/api/health`
@@ -139,6 +154,72 @@ Default tokens:
 - `admin-token`
 - `operator-token`
 - `viewer-token`
+
+## Cloud Deployment
+
+### AWS Architecture
+
+```mermaid
+graph TD
+  U[Users] --> ALB[Application Load Balancer]
+  ALB --> UI[ECS Fargate UI]
+  ALB --> API[ECS Fargate Control Plane]
+  API --> RDS[(RDS PostgreSQL)]
+  API --> REDIS[(ElastiCache Redis)]
+  W[ECS Fargate Worker] --> REDIS
+  W --> RDS
+  API --> CW1[CloudWatch Logs]
+  W --> CW2[CloudWatch Logs]
+  UI --> CW3[CloudWatch Logs]
+  GH[GitHub Actions workflow_dispatch] --> TF[Terraform Apply]
+  TF --> ALB
+  TF --> API
+  TF --> W
+  TF --> UI
+  TF --> RDS
+  TF --> REDIS
+  TF --> ECR[ECR Repositories]
+```
+
+### Deploy / Teardown
+
+Terraform uses S3 backend state with DynamoDB locking (bootstrapped in script).
+
+```bash
+export DB_PASSWORD='replace-with-strong-password'
+
+# Plan + apply
+./scripts/deploy.sh
+
+# Plan only
+APPLY=false ./scripts/deploy.sh
+
+# Cloud smoke (ALB + /api/health)
+./scripts/cloud-smoke.sh
+
+# Teardown infra
+./scripts/teardown.sh
+```
+
+GitHub Actions manual deploy:
+- `.github/workflows/terraform-deploy.yml`
+- Unified multi-project teardown script: `~/projects/scripts/teardown-all.sh`
+
+Estimated running cost (continuous): about `$55-$120/month`.
+
+### Deployment Evidence
+
+- Dry-run plan executed on `2026-02-18` via `scripts/deploy.sh` (`APPLY=false`).
+- Result: `Plan: 40 to add, 0 to change, 0 to destroy`.
+- State backend bootstrap confirmed:
+  - S3 state bucket created
+  - DynamoDB lock table created
+- Live apply executed on `2026-02-18` via `scripts/deploy.sh` (`APPLY=true`).
+- ALB URL: `http://workflow-orc-demo-alb-1577468805.us-east-1.elb.amazonaws.com`
+- Health verification:
+  - `GET /api/health` -> `200`
+  - `GET /` -> `200`
+- Repeatable verification script: `scripts/cloud-smoke.sh`.
 
 ## Quality Gates
 
