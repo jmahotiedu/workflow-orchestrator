@@ -33,6 +33,9 @@ cd "${TF_DIR}"
 
 ALB_URL="$("${TERRAFORM_BIN}" output -raw alb_url)"
 API_HEALTH_URL="$("${TERRAFORM_BIN}" output -raw api_health_url)"
+API_TOKEN="${API_TOKEN:-admin-token}"
+SMOKE_WORKFLOW_NAME="${SMOKE_WORKFLOW_NAME:-cloud-smoke-workflow}"
+SMOKE_DEFINITION='{"version":1,"tasks":[{"id":"a","name":"smoke-start","kind":"noop","config":{"durationMs":10}}]}'
 
 check_url() {
   local name="$1"
@@ -62,5 +65,56 @@ echo "API Health URL: ${API_HEALTH_URL}"
 
 check_url "ALB root" "${ALB_URL}" "^(200|301|302)$"
 check_url "API health" "${API_HEALTH_URL}" "^200$"
+
+workflows_response="$("${CURL_BIN}" -sS -w "\n%{http_code}" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  "${ALB_URL}/api/workflows")"
+workflows_body="${workflows_response%$'\n'*}"
+workflows_status="${workflows_response##*$'\n'}"
+if [[ "${workflows_status}" != "200" ]]; then
+  echo "Authenticated workflows check failed (${workflows_status}): ${ALB_URL}/api/workflows"
+  exit 1
+fi
+echo "Authenticated workflows check passed (${workflows_status})."
+
+create_response="$("${CURL_BIN}" -sS -w "\n%{http_code}" \
+  -X POST \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\":\"${SMOKE_WORKFLOW_NAME}\",\"definition\":${SMOKE_DEFINITION},\"maxConcurrentRuns\":2}" \
+  "${ALB_URL}/api/workflows")"
+create_body="${create_response%$'\n'*}"
+create_status="${create_response##*$'\n'}"
+if [[ "${create_status}" != "201" && "${create_status}" != "409" ]]; then
+  echo "Workflow create smoke failed (${create_status}): ${create_body}"
+  exit 1
+fi
+echo "Workflow create smoke passed (${create_status})."
+
+if [[ "${create_status}" == "201" ]]; then
+  workflow_id="$(printf '%s' "${create_body}" | python -c 'import json,sys; 
+try:
+    payload=json.loads(sys.stdin.read())
+    print(payload.get("workflow", {}).get("id", ""))
+except Exception:
+    print("")
+')"
+  if [[ -n "${workflow_id}" ]]; then
+    trigger_status="$("${CURL_BIN}" -sS -o /dev/null -w "%{http_code}" \
+      -X POST \
+      -H "Authorization: Bearer ${API_TOKEN}" \
+      -H "Content-Type: application/json" \
+      -H "Idempotency-Key: cloud-smoke-${workflow_id}" \
+      -d '{"triggerSource":"manual"}' \
+      "${ALB_URL}/api/workflows/${workflow_id}/trigger")"
+    if [[ "${trigger_status}" != "201" && "${trigger_status}" != "200" ]]; then
+      echo "Workflow trigger smoke failed (${trigger_status}) for ${workflow_id}."
+      exit 1
+    fi
+    echo "Workflow trigger smoke passed (${trigger_status})."
+  else
+    echo "Workflow create returned 201 but ID extraction failed; skipping trigger probe."
+  fi
+fi
 
 echo "Cloud smoke passed for workflow-orchestrator-clean-verify."

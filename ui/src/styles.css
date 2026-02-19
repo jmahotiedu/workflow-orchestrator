@@ -16,6 +16,8 @@ body {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  margin: 0 auto;
+  max-width: 1200px;
   padding: 16px;
 }
 
@@ -26,21 +28,39 @@ body {
   padding: 16px;
 }
 
+.full-width {
+  grid-column: 1 / -1;
+}
+
 .row {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin-top: 8px;
 }
 
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
 input,
 select,
-button {
+button,
+textarea {
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   padding: 8px;
   background: #0f172a;
   color: #f8fafc;
+}
+
+textarea {
+  resize: vertical;
+  width: 100%;
 }
 
 button {
@@ -51,8 +71,13 @@ button.active {
   border-color: #22d3ee;
 }
 
+.item.active {
+  border-color: #22d3ee;
+}
+
 .filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -69,12 +94,21 @@ button.active {
   margin-bottom: 8px;
 }
 
-.list li button {
+.item {
   align-items: flex-start;
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: 100%;
+}
+
+.list li {
+  display: grid;
+  gap: 8px;
+}
+
+.muted {
+  color: #cbd5e1;
 }
 
 table {

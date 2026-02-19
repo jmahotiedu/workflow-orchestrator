@@ -20,6 +20,7 @@
     "dev:control-plane": "npm run -w control-plane dev",
     "dev:worker": "npm run -w worker dev",
     "dev:ui": "npm run -w ui dev",
+    "demo:live-seed": "node scripts/demo/live-seed.mjs",
     "bench": "npm run -w bench start",
     "dev-up": "docker compose up -d",
     "dev-up:full": "docker compose --profile app up -d",

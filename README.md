@@ -216,7 +216,18 @@ Estimated running cost (continuous): about `$55-$120/month`.
 - Health verification:
   - `GET /api/health` -> `200`
   - `GET /` -> `200`
+- Functional verification (`2026-02-19`):
+  - `GET /api/workflows` with `Authorization: Bearer admin-token` -> `200`
+  - Create smoke workflow via `POST /api/workflows` with admin token -> `201` (or `409` if already exists)
+  - Trigger probe runs when workflow create returns a new ID
 - Repeatable verification script: `scripts/cloud-smoke.sh`.
+
+### Live UI Notes
+
+- The live UI is token-gated and defaults to `admin-token`.
+- If no workflows exist, the dashboard appears empty by design until one is created.
+- Use `npm run demo:live-seed` (or the UI seed action) to create and trigger a deterministic demo workflow.
+- No third-party API keys are required for demo usage.
 
 ## Quality Gates
 

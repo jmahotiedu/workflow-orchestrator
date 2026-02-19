@@ -3,6 +3,7 @@ export type Workflow = {
   name: string;
   schedule: string | null;
   maxConcurrentRuns: number;
+  definition: WorkflowDefinition;
 };
 
 export type Run = {
@@ -21,6 +22,21 @@ export type Task = {
   attemptCount: number;
   maxAttempts: number;
   lastError: string | null;
+};
+
+export type WorkflowTaskDefinition = {
+  id: string;
+  name: string;
+  kind: "noop" | "flaky";
+  dependsOn?: string[];
+  config?: Record<string, unknown>;
+  timeoutMs?: number;
+  maxAttempts?: number;
+};
+
+export type WorkflowDefinition = {
+  version: number;
+  tasks: WorkflowTaskDefinition[];
 };
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
@@ -45,9 +61,38 @@ export function listWorkflows(token: string): Promise<{ workflows: Workflow[] }>
   return request("/workflows", token);
 }
 
+export function createWorkflow(
+  token: string,
+  input: {
+    name: string;
+    definition: WorkflowDefinition;
+    schedule?: string | null;
+    maxConcurrentRuns?: number;
+  }
+): Promise<{ workflow: Workflow }> {
+  return request("/workflows", token, {
+    method: "POST",
+    body: JSON.stringify(input)
+  });
+}
+
 export function listRuns(token: string, workflowId?: string): Promise<{ runs: Run[] }> {
   const query = workflowId ? `?workflowId=${encodeURIComponent(workflowId)}` : "";
   return request(`/runs${query}`, token);
+}
+
+export function triggerWorkflow(
+  token: string,
+  workflowId: string,
+  triggerSource: "manual" | "event" | "schedule" = "manual"
+): Promise<{ run: Run; deduped: boolean }> {
+  return request(`/workflows/${workflowId}/trigger`, token, {
+    method: "POST",
+    headers: {
+      "Idempotency-Key": `ui-trigger-${workflowId}-${Date.now()}`
+    },
+    body: JSON.stringify({ triggerSource })
+  });
 }
 
 export function listTasksForRun(token: string, runId: string): Promise<{ tasks: Task[] }> {
